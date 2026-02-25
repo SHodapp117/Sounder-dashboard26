@@ -1,0 +1,29 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.Python
+
+# Secrets — never commit these
+.env
+
+# Airflow — runs locally only
+airflow/logs/
+airflow/airflow.db
+airflow/airflow.db-shm
+airflow/airflow.db-wal
+airflow/airflow.cfg
+airflow/simple_auth_manager_passwords.json.generated
+airflow/__pycache__/
+airflow/dags/__pycache__/
+
+# Raw / transient data
+data/raw/
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/

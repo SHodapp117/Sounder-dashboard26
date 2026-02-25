@@ -1,0 +1,115 @@
+{
+  "season": 2026,
+  "last_synced": "2026-02-23T19:00:00.782999+00:00",
+  "match_count": 12,
+  "matches": [
+    {
+      "id": "761459",
+      "date": "2026-03-01",
+      "kickoff_utc": "2026-03-01T00:30Z",
+      "home": "Real Salt Lake",
+      "away": "Seattle Sounders FC",
+      "competition": "MLS",
+      "status": "STATUS_SCHEDULED"
+    },
+    {
+      "id": "761477",
+      "date": "2026-03-08",
+      "kickoff_utc": "2026-03-08T01:30Z",
+      "home": "St. Louis CITY SC",
+      "away": "Seattle Sounders FC",
+      "competition": "MLS",
+      "status": "STATUS_SCHEDULED"
+    },
+    {
+      "id": "761498",
+      "date": "2026-03-15",
+      "kickoff_utc": "2026-03-15T23:00Z",
+      "home": "San Jose Earthquakes",
+      "away": "Seattle Sounders FC",
+      "competition": "MLS",
+      "status": "STATUS_SCHEDULED"
+    },
+    {
+      "id": "761511",
+      "date": "2026-03-22",
+      "kickoff_utc": "2026-03-22T18:30Z",
+      "home": "Minnesota United FC",
+      "away": "Seattle Sounders FC",
+      "competition": "MLS",
+      "status": "STATUS_SCHEDULED"
+    },
+    {
+      "id": "761523",
+      "date": "2026-04-05",
+      "kickoff_utc": "2026-04-05T00:30Z",
+      "home": "Houston Dynamo FC",
+      "away": "Seattle Sounders FC",
+      "competition": "MLS",
+      "status": "STATUS_SCHEDULED"
+    },
+    {
+      "id": "761543",
+      "date": "2026-04-13",
+      "kickoff_utc": "2026-04-13T01:00Z",
+      "home": "Seattle Sounders FC",
+      "away": "Real Salt Lake",
+      "competition": "MLS",
+      "status": "STATUS_SCHEDULED"
+    },
+    {
+      "id": "761555",
+      "date": "2026-04-19",
+      "kickoff_utc": "2026-04-19T01:30Z",
+      "home": "Seattle Sounders FC",
+      "away": "St. Louis CITY SC",
+      "competition": "MLS",
+      "status": "STATUS_SCHEDULED"
+    },
+    {
+      "id": "761581",
+      "date": "2026-04-26",
+      "kickoff_utc": "2026-04-26T02:30Z",
+      "home": "Seattle Sounders FC",
+      "away": "FC Dallas",
+      "competition": "MLS",
+      "status": "STATUS_SCHEDULED"
+    },
+    {
+      "id": "761585",
+      "date": "2026-05-02",
+      "kickoff_utc": "2026-05-02T18:30Z",
+      "home": "Sporting Kansas City",
+      "away": "Seattle Sounders FC",
+      "competition": "MLS",
+      "status": "STATUS_SCHEDULED"
+    },
+    {
+      "id": "761609",
+      "date": "2026-05-10",
+      "kickoff_utc": "2026-05-10T02:30Z",
+      "home": "Seattle Sounders FC",
+      "away": "San Diego FC",
+      "competition": "MLS",
+      "status": "STATUS_SCHEDULED"
+    },
+    {
+      "id": "761626",
+      "date": "2026-05-14",
+      "kickoff_utc": "2026-05-14T01:30Z",
+      "home": "Seattle Sounders FC",
+      "away": "San Jose Earthquakes",
+      "competition": "MLS",
+      "status": "STATUS_SCHEDULED"
+    },
+    {
+      "id": "761638",
+      "date": "2026-05-17",
+      "kickoff_utc": "2026-05-17T01:00Z",
+      "home": "Seattle Sounders FC",
+      "away": "LA Galaxy",
+      "competition": "MLS",
+      "status": "STATUS_SCHEDULED"
+    }
+  ]
+}

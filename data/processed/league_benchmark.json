@@ -1,0 +1,98 @@
+{
+  "GK": {
+    "goalkeeper_saves": [
+      2.689481,
+      2.27081
+    ],
+    "clean_sheets": [
+      0.233333,
+      0.430183
+    ],
+    "goals_conceded": [
+      1.38042,
+      1.159347
+    ]
+  },
+  "CB": {
+    "defensive_clearances": [
+      7.270279,
+      1.0
+    ],
+    "passes_conversion_rate": [
+      0.89,
+      1.0
+    ],
+    "ball_control_phases": [
+      80.881858,
+      1.0
+    ]
+  },
+  "DM": {
+    "passes_conversion_rate": [
+      0.877822,
+      0.05576
+    ],
+    "ball_control_phases": [
+      65.378375,
+      14.919923
+    ],
+    "fouls_against_opponent": [
+      0.98063,
+      1.0618
+    ]
+  },
+  "CM": {
+    "passes_conversion_rate": [
+      0.769565,
+      0.091466
+    ],
+    "ball_control_phases": [
+      41.537965,
+      13.472212
+    ],
+    "chances": [
+      0.872837,
+      0.951198
+    ],
+    "assists": [
+      0.041648,
+      0.196852
+    ]
+  },
+  "AM": {
+    "assists": [
+      0.922791,
+      0.048771
+    ],
+    "chances": [
+      3.691162,
+      0.195085
+    ],
+    "goals": [
+      0.0,
+      1.0
+    ],
+    "shots_on_target": [
+      0.922791,
+      0.048771
+    ]
+  },
+  "FW": {
+    "goals": [
+      1.037263,
+      0.485344
+    ],
+    "xG": [
+      0.798579,
+      0.577144
+    ],
+    "shots_on_target": [
+      1.710658,
+      0.851085
+    ],
+    "assists": [
+      0.239595,
+      0.539811
+    ]
+  }
+}
