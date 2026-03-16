@@ -2,7 +2,7 @@
   "_meta": {
     "version": 1,
     "season": 2026,
-    "updated_at": "2026-03-07T00:32:03.256643+00:00"
+    "updated_at": "2026-03-08T03:39:50.118485+00:00"
   },
   "entries": {
     "268173": {
@@ -45,13 +45,13 @@
       "mls_id": "MLS-OBJ-0000MD",
       "canonical_name": "Cristian Roldan",
       "matched_via": "name",
-      "position_raw": "RM"
+      "position_raw": "LM"
     },
     "245570": {
       "mls_id": "MLS-OBJ-0000DN",
       "canonical_name": "Hassani Dotson",
       "matched_via": "name",
-      "position_raw": "LM"
+      "position_raw": "RM"
     },
     "301856": {
       "mls_id": "MLS-OBJ-0006M4",
@@ -69,7 +69,7 @@
       "mls_id": "MLS-OBJ-000093",
       "canonical_name": "Jesús Ferreira",
       "matched_via": "name",
-      "position_raw": "AM-R"
+      "position_raw": "AM-L"
     },
     "254382": {
       "mls_id": "MLS-OBJ-0000S1",
@@ -112,6 +112,12 @@
       "canonical_name": "Nikola Petkovic",
       "matched_via": "manual",
       "position_raw": "CB"
+    },
+    "318520": {
+      "mls_id": "MLS-OBJ-00014V",
+      "canonical_name": "Cody Baker",
+      "matched_via": "name",
+      "position_raw": null
     }
   }
 }

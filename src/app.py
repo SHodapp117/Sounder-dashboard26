@@ -1572,6 +1572,90 @@ def render_trends(df: pd.DataFrame) -> None:
     st.plotly_chart(fig, use_container_width=True)
 
 
+def render_season_performers(df: pd.DataFrame, min_minutes: int = 120) -> None:
+    """Top and bottom Sounders performers by avg composite Z-score (min minutes filter)."""
+    st.markdown('<div class="srule"></div>', unsafe_allow_html=True)
+    st.subheader(f"Season Performers  —  min {min_minutes}' played")
+
+    if df.empty or "composite_zscore" not in df.columns:
+        st.markdown('<div class="nodata">Not enough data yet</div>',
+                    unsafe_allow_html=True)
+        return
+
+    # Aggregate per player: total minutes, mean Z, matches played
+    scored = df[df["composite_zscore"].notna()].copy()
+    if scored.empty:
+        st.markdown('<div class="nodata">No scored appearances yet</div>',
+                    unsafe_allow_html=True)
+        return
+
+    agg = (
+        scored.groupby(["player_id", "player_name"])
+        .agg(
+            total_min=("minutes_played", "sum"),
+            avg_z=("composite_zscore", "mean"),
+            matches=("match_id", "nunique"),
+            position=("position_group", "first"),
+        )
+        .reset_index()
+    )
+    qualified = agg[agg["total_min"] >= min_minutes].copy()
+
+    if qualified.empty:
+        st.info(f"No players with {min_minutes}+ minutes yet.", icon="⏱️")
+        return
+
+    qualified = qualified.sort_values("avg_z", ascending=False).reset_index(drop=True)
+
+    top3    = qualified.head(3)
+    bottom3 = qualified.tail(3).sort_values("avg_z")
+
+    def _perf_card(row, rank: int, is_top: bool) -> str:
+        z     = row["avg_z"]
+        pct   = int(norm.cdf(float(z)) * 100)
+        arrow = "▲" if z >= 0 else "▼"
+        color = RAVE_GREEN if z >= 0 else "#8B1A1A"
+        badge = "b-g" if pct >= 75 else ("b-y" if pct >= 40 else "b-r")
+        icon  = "🏆" if is_top and rank == 1 else ""
+        return (
+            f'<div style="background:{CARD_BG};border:1px solid {BORDER};'
+            f'border-left:3px solid {color};border-radius:8px;'
+            f'padding:10px 12px;margin-bottom:6px;display:flex;'
+            f'align-items:center;justify-content:space-between">'
+            f'<div>'
+            f'<span style="color:#fff;font-weight:700;font-size:.88em">'
+            f'{icon} {row["player_name"]}</span>'
+            f'<span style="color:#888;font-size:.72em;margin-left:8px">'
+            f'{row["position"]} · {int(row["total_min"])}\' · {int(row["matches"])} app</span>'
+            f'</div>'
+            f'<div style="display:flex;align-items:center;gap:8px">'
+            f'<span style="font-weight:700;color:{color};font-size:1.05em">'
+            f'{arrow} {z:+.2f}</span>'
+            f'<span class="{badge}">{pct}th</span>'
+            f'</div>'
+            f'</div>'
+        )
+
+    c_top, c_bot = st.columns(2)
+    with c_top:
+        st.markdown(
+            f'<div style="color:{RAVE_GREEN};font-size:.78em;font-weight:700;'
+            f'letter-spacing:.06em;margin-bottom:6px">TOP PERFORMERS</div>',
+            unsafe_allow_html=True,
+        )
+        for i, (_, row) in enumerate(top3.iterrows()):
+            st.markdown(_perf_card(row, i + 1, True), unsafe_allow_html=True)
+
+    with c_bot:
+        st.markdown(
+            f'<div style="color:#8B1A1A;font-size:.78em;font-weight:700;'
+            f'letter-spacing:.06em;margin-bottom:6px">BOTTOM PERFORMERS</div>',
+            unsafe_allow_html=True,
+        )
+        for i, (_, row) in enumerate(bottom3.iterrows()):
+            st.markdown(_perf_card(row, i + 1, False), unsafe_allow_html=True)
+
+
 def render_outliers(df: pd.DataFrame) -> None:
     st.markdown('<div class="srule"></div>', unsafe_allow_html=True)
     st.subheader("League Outliers — ±1σ & ±2σ by Position")
@@ -1980,6 +2064,7 @@ def main() -> None:
         render_attacking_snapshot()
         render_creation_snapshot()
         render_defensive_snapshot()
+        render_season_performers(active_df)
         render_trends(active_df)
         render_outliers(active_df)
 
