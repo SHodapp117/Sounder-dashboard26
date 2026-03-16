@@ -133,7 +133,7 @@ def generate_mock_sounders_match(match_id: str = "MOCK-001") -> list[PlayerStat]
         ))
 
     for name, pos, pid in subs:
-        group = _POS_GROUP.get(pos, "GK")
+        group = _POS_GROUP.get(pos, "CM")
         players.append(PlayerStat(
             player_id    = pid,
             player_name  = name,

@@ -165,6 +165,20 @@ RATE_STATS: frozenset[str] = frozenset({
     "maximum_speed",            # peak value (km/h) — not cumulative, no per-90
 })
 
+# Stats reported directly from ESPN per-match box scores.
+# These reflect single-match totals, so compute_zscore normalizes them using
+# match minutes (player.minutes).  All other counting stats come from the MLS
+# API as season aggregates and must be normalized using season_minutes so the
+# per-90 rate matches how the benchmark was built.
+ESPN_DIRECT_STATS: frozenset[str] = frozenset({
+    "goals",
+    "assists",
+    "goalkeeper_saves",
+    "goals_conceded",
+    "shots_on_target",
+    "fouls_against_opponent",
+})
+
 # Minimum season minutes for a player to be included in the benchmark.
 # Filters out cameo appearances whose per-90 projections would be inflated.
 MIN_BENCHMARK_MINUTES: int = 90

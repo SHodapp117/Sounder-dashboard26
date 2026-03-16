@@ -53,15 +53,16 @@ RAW_DATA_DIR = Path(__file__).parent.parent / "data" / "raw"
 # ═══════════════════════════════════════════════════════════════════════════
 
 class PlayerStat(BaseModel):
-    player_id:    str
-    player_name:  str
-    team_id:      str = ""
-    position_raw: str | None = None   # position code ("GK", "CB", etc.)
-    is_gk:        bool = False         # from MLS goal_keeper field
-    minutes:      float = 0.0
-    stats:        dict[str, Any] = Field(default_factory=dict)
-    match_id:     str | None = None
-    source:       str = "unknown"      # "mls" | "espn" | "mock"
+    player_id:      str
+    player_name:    str
+    team_id:        str = ""
+    position_raw:   str | None = None   # position code ("GK", "CB", etc.)
+    is_gk:          bool = False         # from MLS goal_keeper field
+    minutes:        float = 0.0          # match minutes (from ESPN)
+    season_minutes: float = 0.0          # total season minutes (from MLS API)
+    stats:          dict[str, Any] = Field(default_factory=dict)
+    match_id:       str | None = None
+    source:         str = "unknown"      # "mls" | "espn" | "mock"
 
 
 class MatchInfo(BaseModel):
@@ -503,8 +504,9 @@ class ESPNApiClient:
                     athlete   = player_entry.get("athlete", {})
                     # Position lives at the player_entry level, not athlete level
                     pos_code  = (player_entry.get("position") or {}).get("abbreviation")
-                    starter   = player_entry.get("starter", False)
-                    subbed_in = player_entry.get("subbedIn", False)
+                    starter    = player_entry.get("starter", False)
+                    subbed_in  = player_entry.get("subbedIn", False)
+                    subbed_out = player_entry.get("subbedOut", False)
 
                     # Normalize ESPN stat names to match MLS API / analytics schema
                     stat_dict: dict[str, float] = {
@@ -513,9 +515,13 @@ class ESPNApiClient:
                         if "name" in s and "value" in s
                     }
 
-                    # Estimate minutes (ESPN roster doesn't include exact sub times)
-                    if starter:
+                    # Estimate minutes (ESPN roster doesn't include exact sub times).
+                    # Starters subbed out are estimated at 65 min (MLS sub average).
+                    # Subs coming on are estimated at 30 min.
+                    if starter and not subbed_out:
                         minutes = 90.0
+                    elif starter and subbed_out:
+                        minutes = 65.0
                     elif subbed_in:
                         minutes = 30.0
                     else:
@@ -612,9 +618,11 @@ class SoundersDataClient:
     """
 
     def __init__(self) -> None:
-        self.mls  = MLSApiClient()
-        self.espn = ESPNApiClient()
+        self.mls      = MLSApiClient()
+        self.espn     = ESPNApiClient()
         self._season_id: str | None = None
+        from player_registry import PlayerRegistry
+        self.registry = PlayerRegistry()
 
     def _get_season_id(self) -> str | None:
         if self._season_id is None:
@@ -692,14 +700,10 @@ class SoundersDataClient:
                                    the per-match values).
 
         ESPN wins on any stat it reports directly; MLS API fills the gaps.
-        The merge key is normalised player name (lowercase, stripped).
+        The merge key is the ESPN athlete ID, resolved via PlayerRegistry
+        (name-matching runs once per new ID, then cached in player_registry.json).
         """
-        import unicodedata
-
-        def _norm(name: str) -> str:
-            """Normalise to ASCII lowercase for fuzzy name matching."""
-            nfkd = unicodedata.normalize("NFKD", name or "")
-            return "".join(c for c in nfkd if not unicodedata.combining(c)).lower().strip()
+        from player_registry import _norm
 
         print(f"[Client] Fetching match summary for event {match_id} (ESPN)…")
         summary = self.espn.get_match_summary(match_id)
@@ -716,28 +720,48 @@ class SoundersDataClient:
 
         # ── Merge MLS API season stats ─────────────────────────────────────
         print(f"[Client] Fetching MLS API season stats to supplement ESPN data…")
-        season_id = self.mls.get_season_id(SEASON)
+        season_id   = self.mls.get_season_id(SEASON)
         mls_players = self.mls.get_sounders_player_stats(season_id) if season_id else []
 
         if mls_players:
-            mls_by_name: dict[str, dict] = {
-                _norm(p.player_name): p.stats for p in mls_players
-            }
+            mls_by_id:   dict[str, PlayerStat] = {p.player_id:           p for p in mls_players}
+            mls_by_name: dict[str, PlayerStat] = {_norm(p.player_name):  p for p in mls_players}
+
             merged = 0
             for player in players:
+                # ── Position hygiene ──────────────────────────────────────
+                # ESPN labels all bench players "SUB" regardless of role.
+                # For starters, store the real position code so it's
+                # available for future matches when they come on as a sub.
+                if player.position_raw and player.position_raw not in ("SUB", "BE"):
+                    self.registry.update_position(player.player_id, player.position_raw)
+                elif player.position_raw in ("SUB", "BE", None):
+                    stored = self.registry.get_position(player.player_id)
+                    if stored:
+                        player.position_raw = stored
+
                 # Don't supplement bench players (0 min) with season stats —
                 # their MLS aggregate numbers don't reflect this match.
                 if player.minutes == 0:
                     continue
-                mls_stats = mls_by_name.get(_norm(player.player_name), {})
-                if not mls_stats:
-                    continue
+                mls_player = self.registry.resolve(
+                    player.player_id, player.player_name, mls_by_id, mls_by_name,
+                    position_raw=player.position_raw,
+                )
+                if not mls_player:
+                    continue  # message already printed by registry
+                # Carry over season minutes so compute_zscore can normalize
+                # MLS counting stats by total season minutes (not match minutes).
+                player.season_minutes = mls_player.minutes
                 # ESPN takes precedence: only fill stats that ESPN left absent
-                for k, v in mls_stats.items():
+                for k, v in mls_player.stats.items():
                     if k not in player.stats or player.stats[k] is None:
                         player.stats[k] = v
                 merged += 1
-            print(f"  [MLS]  Season stats merged for {merged}/{len(players)} players.")
+
+            played = sum(1 for p in players if p.minutes > 0)
+            print(f"  [MLS]  Season stats merged for {merged}/{played} players who played.")
+            self.registry.save_if_updated()
         else:
             print(f"  [MLS]  No season stats available — using ESPN only.")
 

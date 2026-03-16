@@ -28,6 +28,7 @@ from config import (
     MIN_MINUTES_FOR_VELOCITY,
     VELOCITY_WINDOW,
     RATE_STATS,
+    ESPN_DIRECT_STATS,
     MIN_BENCHMARK_MINUTES,
 )
 from api_client import PlayerStat
@@ -218,9 +219,15 @@ class AnalyticsEngine:
         weighted_z   = 0.0
         covered_weight = 0.0
 
-        # Normalize match minutes to per-90 scale (floor at 1.0 to guard
-        # against 0-minute rows that would cause division by zero).
-        scale = max(player.minutes / 90.0, 1.0)
+        # Two normalization scales:
+        #   match_scale  — for ESPN per-match counting stats (goals, saves, etc.)
+        #   season_scale — for MLS season-aggregate counting stats (touches,
+        #                  chances, clearances, xG, crosses).  The benchmark was
+        #                  built by dividing season totals by season_minutes/90,
+        #                  so we must do the same here for a valid comparison.
+        match_scale  = max(player.minutes / 90.0, 1.0)
+        season_scale = max(player.season_minutes / 90.0, 1.0) \
+                       if player.season_minutes > 0 else match_scale
 
         for stat, weight in stat_weights:
             if stat not in group_bm:
@@ -232,8 +239,17 @@ class AnalyticsEngine:
                 continue
             mu, sigma = group_bm[stat]
             raw       = float(player.stats[stat] or 0)
-            # Apply the same normalization used when building the benchmark
-            value     = raw / scale if stat not in RATE_STATS else raw
+            # Apply the same normalization used when building the benchmark.
+            # Rate stats (pass %, clean sheets) are used as-is.
+            # ESPN-direct stats (goals, saves, etc.) scale by match minutes.
+            # MLS season-aggregate stats (touches, xG, chances, crosses,
+            # clearances) scale by total season minutes.
+            if stat in RATE_STATS:
+                value = raw
+            elif stat in ESPN_DIRECT_STATS:
+                value = raw / match_scale
+            else:
+                value = raw / season_scale
             z_stat    = (value - mu) / sigma
             weighted_z     += weight * z_stat
             covered_weight += abs(weight)

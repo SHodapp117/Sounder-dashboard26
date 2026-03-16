@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+from datetime import datetime as _dt
 from pathlib import Path
 
 import numpy as np
@@ -50,7 +51,7 @@ PRIMARY_KPI: dict[str, str] = {
     "GK": "goalkeeper_saves",
     "CB": "defensive_clearances",
     "FB": "crosses_from_play_successful",
-    "DM": "interceptions_sum",
+    "DM": "ball_control_phases",
     "CM": "assists",
     "AM": "chances",
     "FW": "xG",
@@ -60,7 +61,7 @@ KPI_LABEL: dict[str, str] = {
     "goalkeeper_saves":            "Saves",
     "defensive_clearances":        "Clearances",
     "crosses_from_play_successful":"Crosses",
-    "interceptions_sum":           "Interceptions",
+    "ball_control_phases":         "Touches",
     "assists":                     "Assists",
     "chances":                     "Chances Created",
     "xG":                          "xG",
@@ -291,6 +292,10 @@ st.markdown(f"""
   .fx-comp {{
     font-size:.62em; color:#888; background:rgba(255,255,255,0.07);
     border-radius:4px; padding:2px 5px; white-space:nowrap;
+  }}
+  .fx-elo {{
+    font-size:.7em; color:#aaa; text-align:right;
+    align-self:center; min-width:52px; white-space:nowrap;
   }}
 
   /* Western Conference standings */
@@ -589,21 +594,57 @@ def _pct_badge(z: float | None) -> str:
     return f'<span class="{cls}">{pct}th pct</span>'
 
 
-def _match_labels(df: pd.DataFrame, schedule: list[dict]) -> dict[str, str]:
+@st.cache_data(ttl=86400)
+def _fetch_match_meta(match_id: str) -> dict:
+    """Fetch opponent name and actual match date from ESPN for matches not in the schedule cache."""
+    result = {"opponent": "", "date": ""}
+    try:
+        client  = ESPNApiClient()
+        summary = client.get_match_summary(match_id)
+        if not summary:
+            return result
+        for comp in summary.get("header", {}).get("competitions", [{}])[:1]:
+            # Date is in the competition dict as an ISO string
+            raw_date = comp.get("date", "")
+            if raw_date:
+                try:
+                    result["date"] = _dt.fromisoformat(raw_date.replace("Z", "+00:00")).strftime("%b %-d")
+                except Exception:
+                    result["date"] = raw_date[:10]
+            for team in comp.get("competitors", []):
+                name = team.get("team", {}).get("displayName", "")
+                if "Seattle" not in name:
+                    result["opponent"] = name
+    except Exception:
+        pass
+    return result
+
+
+def _match_labels(
+    df: pd.DataFrame,
+    schedule: list[dict],
+    elo_by_name: dict[str, float] | None = None,
+) -> dict[str, str]:
     sched = {m["id"]: m for m in schedule}
     labels: dict[str, str] = {}
     for mid in sorted(df["match_id"].dropna().unique()):
         m = sched.get(str(mid))
-        # Derive date string for display
-        ts = df[df["match_id"] == mid]["timestamp"].min()
-        date_str = ts.strftime("%b %-d") if pd.notna(ts) else "?"
         if m:
+            # Use actual game date from schedule
+            raw_date = m.get("date", "") or m.get("kickoff_utc", "")
+            try:
+                date_str = _dt.fromisoformat(raw_date.replace("Z", "+00:00")).strftime("%b %-d")
+            except Exception:
+                date_str = raw_date[:10] if raw_date else "?"
             opp_full = m.get("away", "") if "Seattle" in m.get("home", "") else m.get("home", "")
-            # Shorten "Portland Timbers" → "Portland", "LA Galaxy" → "LA Galaxy" etc.
-            opp = opp_full.replace(" FC", "").replace(" SC", "").strip() or "?"
-            labels[mid] = f"{date_str} — {opp}"
         else:
-            labels[mid] = date_str
+            meta     = _fetch_match_meta(str(mid))
+            date_str = meta["date"] or "?"
+            opp_full = meta["opponent"]
+        opp     = opp_full.replace(" FC", "").replace(" SC", "").strip() or "?"
+        elo_val = (elo_by_name or {}).get(opp_full)
+        elo_str = f"  {elo_val:.0f}" if elo_val else ""
+        labels[mid] = f"{date_str} — {opp}{elo_str}"
     return labels
 
 
@@ -1666,8 +1707,10 @@ def render_next_fixtures(n: int = 3) -> None:
         return
 
     from datetime import datetime, timezone
-    now_utc  = datetime.now(timezone.utc).isoformat()
-    upcoming = [f for f in fixtures if f.get("kickoff_utc", f.get("date_local","")) > now_utc[:10]]
+    from elo_engine import EloEngine
+    now_utc    = datetime.now(timezone.utc).isoformat()
+    elo_by_name = EloEngine.load_by_name()
+    upcoming   = [f for f in fixtures if f.get("kickoff_utc", f.get("date_local","")) > now_utc[:10]]
 
     shown = 0
     for m in upcoming:
@@ -1683,10 +1726,14 @@ def render_next_fixtures(n: int = 3) -> None:
             month_day = raw_dt[:10]
             weekday   = ""
 
-        home = m.get("home", "?")
-        away = m.get("away", "?")
-        home = home.replace("Seattle Sounders FC", "SSFC")
-        away = away.replace("Seattle Sounders FC", "SSFC")
+        home_raw = m.get("home", "?")
+        away_raw = m.get("away", "?")
+        opp_full = away_raw if "Seattle" in home_raw else home_raw
+        elo_val  = elo_by_name.get(opp_full)
+        elo_str  = f"ELO {elo_val:.0f}" if elo_val else ""
+
+        home = home_raw.replace("Seattle Sounders FC", "SSFC")
+        away = away_raw.replace("Seattle Sounders FC", "SSFC")
         comp = m.get("competition", "MLS")
 
         st.markdown(
@@ -1694,6 +1741,7 @@ def render_next_fixtures(n: int = 3) -> None:
             f'  <div class="fx-date">{weekday}<br>{month_day}</div>'
             f'  <div class="fx-teams">{home}<br><span style="color:#888">vs</span> {away}</div>'
             f'  <div class="fx-comp">{comp}</div>'
+            f'  <div class="fx-elo">{elo_str}</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -1761,12 +1809,28 @@ def render_standings_table() -> None:
         hi = min(len(rows), sounders_idx + 3)
         window = rows[lo:hi]
 
+    # Load ELO ratings (build fresh if missing/stale)
+    from config import SEASON
+    from elo_engine import EloEngine
+    elo_ratings: dict[str, float] = {}
+    if EloEngine.is_stale():
+        try:
+            elo = EloEngine()
+            elo.build(seasons=[SEASON - 1, SEASON])
+            elo.save()
+            elo_ratings = elo.ratings
+        except Exception:
+            pass
+    else:
+        elo_ratings = EloEngine.load() or {}
+
     # Build HTML table
     header = (
         "<table class='st-tbl'>"
         "<thead><tr>"
         "<th>#</th><th style='text-align:left'>Club</th>"
         "<th>Pts</th><th>GP</th><th>W</th><th>D</th><th>L</th><th>GD</th>"
+        "<th title='ELO rating (2025–2026)'>ELO</th>"
         "</tr></thead><tbody>"
     )
     body_rows = []
@@ -1779,6 +1843,9 @@ def render_standings_table() -> None:
             gd_fmt = f"+{gd_val}" if gd_val > 0 else str(gd_val)
         else:
             gd_fmt = gd_str
+        abbrev  = r.get("abbrev", "")
+        elo_val = elo_ratings.get(abbrev)
+        elo_fmt = f"{elo_val:.0f}" if elo_val else "—"
         body_rows.append(
             f"<tr{row_cls}>"
             f"<td>{r['rank']}</td>"
@@ -1789,6 +1856,7 @@ def render_standings_table() -> None:
             f"<td>{r['d']}</td>"
             f"<td>{r['l']}</td>"
             f"<td>{gd_fmt}</td>"
+            f"<td style='color:#888;font-size:.9em'>{elo_fmt}</td>"
             f"</tr>"
         )
     footer = "</tbody></table>"
@@ -1822,7 +1890,9 @@ def build_sidebar(df: pd.DataFrame, schedule: list[dict]) -> pd.DataFrame:
         st.sidebar.info("No match data yet.")
         return df
 
-    labels = _match_labels(df, schedule)
+    from elo_engine import EloEngine
+    elo_by_name = EloEngine.load_by_name()
+    labels = _match_labels(df, schedule, elo_by_name=elo_by_name)
     all_ids = list(labels.keys())
 
     # ── Matchweek filter ──────────────────────────────────────────────────────

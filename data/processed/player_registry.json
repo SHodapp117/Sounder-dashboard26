@@ -1,0 +1,117 @@
+{
+  "_meta": {
+    "version": 1,
+    "season": 2026,
+    "updated_at": "2026-03-07T00:32:03.256643+00:00"
+  },
+  "entries": {
+    "268173": {
+      "mls_id": "MLS-OBJ-0000M2",
+      "canonical_name": "Andy Thomas",
+      "matched_via": "manual",
+      "position_raw": "G"
+    },
+    "254383": {
+      "mls_id": "MLS-OBJ-0000M7",
+      "canonical_name": "Jackson Ragen",
+      "matched_via": "name",
+      "position_raw": "CD-L"
+    },
+    "206682": {
+      "mls_id": "MLS-OBJ-0000M8",
+      "canonical_name": "Yeimar Gómez",
+      "matched_via": "manual",
+      "position_raw": "CD-R"
+    },
+    "252474": {
+      "mls_id": "MLS-OBJ-0000M6",
+      "canonical_name": "Nouhou Tolo",
+      "matched_via": "name",
+      "position_raw": "LB"
+    },
+    "256514": {
+      "mls_id": "MLS-OBJ-0000MG",
+      "canonical_name": "Alex Roldan",
+      "matched_via": "name",
+      "position_raw": "RB"
+    },
+    "171573": {
+      "mls_id": "MLS-OBJ-0000MF",
+      "canonical_name": "Albert Rusnák",
+      "matched_via": "name",
+      "position_raw": "AM"
+    },
+    "216617": {
+      "mls_id": "MLS-OBJ-0000MD",
+      "canonical_name": "Cristian Roldan",
+      "matched_via": "name",
+      "position_raw": "RM"
+    },
+    "245570": {
+      "mls_id": "MLS-OBJ-0000DN",
+      "canonical_name": "Hassani Dotson",
+      "matched_via": "name",
+      "position_raw": "LM"
+    },
+    "301856": {
+      "mls_id": "MLS-OBJ-0006M4",
+      "canonical_name": "Osaze De Rosario",
+      "matched_via": "name",
+      "position_raw": "F"
+    },
+    "210252": {
+      "mls_id": "MLS-OBJ-0000MQ",
+      "canonical_name": "Jordan Morris",
+      "matched_via": "name",
+      "position_raw": "AM-L"
+    },
+    "251571": {
+      "mls_id": "MLS-OBJ-000093",
+      "canonical_name": "Jesús Ferreira",
+      "matched_via": "name",
+      "position_raw": "AM-R"
+    },
+    "254382": {
+      "mls_id": "MLS-OBJ-0000S1",
+      "canonical_name": "Paul Rothrock",
+      "matched_via": "name",
+      "position_raw": "AM-L"
+    },
+    "362501": {
+      "mls_id": "MLS-OBJ-0001DU",
+      "canonical_name": "Georgi Minoungou",
+      "matched_via": "manual",
+      "position_raw": "FW"
+    },
+    "256450": {
+      "mls_id": "MLS-OBJ-0000L1",
+      "canonical_name": "Daniel Musovski",
+      "matched_via": "manual",
+      "position_raw": "ST"
+    },
+    "159491": {
+      "mls_id": "MLS-OBJ-00008V",
+      "canonical_name": "Paul Arriola",
+      "matched_via": "manual",
+      "position_raw": "AM-R"
+    },
+    "384356": {
+      "mls_id": "MLS-OBJ-0001BZ",
+      "canonical_name": "Snyder Brunell",
+      "matched_via": "manual",
+      "position_raw": "CDM"
+    },
+    "319045": {
+      "mls_id": "MLS-OBJ-0005IC",
+      "canonical_name": "Kalani Kossa-Rienzi",
+      "matched_via": "manual",
+      "position_raw": "AM-L"
+    },
+    "322064": {
+      "mls_id": "MLS-OBJ-000251",
+      "canonical_name": "Nikola Petkovic",
+      "matched_via": "manual",
+      "position_raw": "CB"
+    }
+  }
+}

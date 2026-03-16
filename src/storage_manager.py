@@ -140,12 +140,28 @@ class StorageManager:
         """
         Return True if the cached benchmark does not exist or is older
         than BENCHMARK_MAX_AGE_HOURS.
+
+        Prefers the `_meta.created_at` timestamp embedded in the JSON
+        (written by save_benchmark); falls back to file mtime for caches
+        written by older versions of this code.
         """
         if not BENCHMARK_PATH.exists():
             return True
-        mtime = datetime.fromtimestamp(BENCHMARK_PATH.stat().st_mtime, tz=timezone.utc)
-        age   = datetime.now(timezone.utc) - mtime
-        return age > timedelta(hours=BENCHMARK_MAX_AGE_HOURS)
+        try:
+            with open(BENCHMARK_PATH) as f:
+                raw = json.load(f)
+            created_str = raw.get("_meta", {}).get("created_at")
+            if created_str:
+                created = datetime.fromisoformat(created_str)
+            else:
+                # Legacy: no _meta key → use file mtime
+                created = datetime.fromtimestamp(
+                    BENCHMARK_PATH.stat().st_mtime, tz=timezone.utc
+                )
+            age = datetime.now(timezone.utc) - created
+            return age > timedelta(hours=BENCHMARK_MAX_AGE_HOURS)
+        except Exception:
+            return True   # corrupt or unreadable → treat as stale
 
     def load_benchmark(self) -> dict | None:
         """
@@ -156,7 +172,9 @@ class StorageManager:
             return None
         try:
             with open(BENCHMARK_PATH) as f:
-                return json.load(f)
+                raw = json.load(f)
+            # Strip internal metadata key before returning benchmark data
+            return {k: v for k, v in raw.items() if k != "_meta"}
         except Exception as exc:
             print(f"[Storage] Could not read benchmark cache: {exc}")
             return None
@@ -164,17 +182,18 @@ class StorageManager:
     def save_benchmark(self, benchmark: dict) -> None:
         """
         Persist benchmark to /data/processed/league_benchmark.json.
-        The file modification time acts as the cache timestamp.
+        Embeds a `_meta.created_at` ISO timestamp so staleness checks
+        don't depend on file mtime (which changes on copy/sync/backup).
         """
         PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
         # Convert tuple values (mean, std) to lists for JSON serialisation
-        serialisable = {
-            group: {
-                stat: list(values)
-                for stat, values in stats.items()
-            }
-            for group, stats in benchmark.items()
+        serialisable: dict = {
+            "_meta": {"created_at": datetime.now(timezone.utc).isoformat()},
         }
+        for group, stats in benchmark.items():
+            serialisable[group] = {
+                stat: list(values) for stat, values in stats.items()
+            }
         with open(BENCHMARK_PATH, "w") as f:
             json.dump(serialisable, f, indent=2)
         print(f"[Storage] Benchmark saved → {BENCHMARK_PATH}")
@@ -194,11 +213,16 @@ class StorageManager:
         """
         cached = self.load_benchmark()
         if cached is not None:
-            age_mins = int(
-                (datetime.now(timezone.utc) -
-                 datetime.fromtimestamp(BENCHMARK_PATH.stat().st_mtime, tz=timezone.utc)
-                ).total_seconds() / 60
-            )
+            # Compute age from embedded timestamp for the status message
+            try:
+                with open(BENCHMARK_PATH) as f:
+                    meta = json.load(f).get("_meta", {})
+                created_str = meta.get("created_at", "")
+                created = datetime.fromisoformat(created_str) if created_str else None
+                age_mins = int((datetime.now(timezone.utc) - created).total_seconds() / 60) \
+                           if created else "?"
+            except Exception:
+                age_mins = "?"
             print(f"[Storage] Using cached benchmark ({age_mins} min old).")
             # Re-convert lists back to tuples so callers get consistent types
             return {
